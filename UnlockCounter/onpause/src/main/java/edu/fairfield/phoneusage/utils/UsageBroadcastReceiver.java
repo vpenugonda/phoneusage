@@ -1,0 +1,201 @@
+package edu.fairfield.phoneusage.utils;
+
+import android.app.NotificationManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.support.annotation.Nullable;
+import android.util.Log;
+import android.widget.Toast;
+
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.Wearable;
+
+import java.util.Calendar;
+
+import edu.fairfield.phoneusage.R;
+import edu.fairfield.phoneusage.controllers.TodayFragment;
+import edu.fairfield.phoneusage.models.classes.LocalDailyUsageEntry;
+import edu.fairfield.phoneusage.models.classes.UnlockLockEvent;
+import edu.fairfield.phoneusage.models.data_sources.BaseDataSource;
+import edu.fairfield.phoneusage.models.data_sources.LocalDailyUsageEntryDataSource;
+import edu.fairfield.phoneusage.models.data_sources.UnlockLockEventDataSource;
+
+
+/**
+ * Created by hunterestrada on 2/28/16.
+ */
+public class UsageBroadcastReceiver extends BroadcastReceiver {
+    private static final int SPEECH_NOTIFICATION = 7;
+    private static String TAG = "SVB-UsageBR";
+
+    private long unlockDateTime = -1;
+    private GoogleApiClient mGoogleApiClient; // For watch
+
+    @Override
+    public void onReceive(final Context context, Intent intent) {
+
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+        String durationKey = context.getString(R.string.key_for_daily_duration);
+        String unlocksKey = context.getString(R.string.key_for_daily_unlocks);
+        String limitKey = context.getString(R.string.key_for_daily_limitation);
+
+        // MIDNIGHT SCHEDULER
+        if (intent.getAction() == null) {
+            // upload data to Parse and reset local preferences at midnight
+            Log.d(getClass().getName(), "received midnight request");
+
+            // temporarily save before clearing preferences
+            long dailyDuration = sharedPreferences.getLong(durationKey, 0);
+            long dailyUnlocks = sharedPreferences.getLong(unlocksKey, 0);
+            ParseUtils.addInfoToParse(dailyDuration, dailyUnlocks);
+
+            // clear preferences to prepare for next day
+            refreshPreferences(sharedPreferences, durationKey, unlocksKey);
+            unlockDateTime = -1;
+
+
+            // Save the LocalDailyUsageEntry for today to the local db.
+            LocalDailyUsageEntry localUsageEntry = new LocalDailyUsageEntry();
+            localUsageEntry.setTotalUnlocks((int) dailyUnlocks);
+            localUsageEntry.setTotalUsageMS(dailyDuration);
+            localUsageEntry.setDateTimeMS(Calendar.getInstance().getTimeInMillis());
+            localUsageEntry.setGoalHoursMS(sharedPreferences.getLong(limitKey, 0));
+            LocalDailyUsageEntryDataSource.getInstance(context).saveLocalDailyUsageEntry(
+                    localUsageEntry, new BaseDataSource.CompletionHandler<LocalDailyUsageEntry>() {
+                        @Override
+                        public void onTaskCompleted(LocalDailyUsageEntry result) {
+                            Log.d(TAG, "Saved local entry: " + result);
+                        }
+                    });
+
+
+            ParseUtils.getStatsInfo(context, new BaseDataSource.CompletionHandler<Boolean>() {
+                @Override
+                public void onTaskCompleted(Boolean result) {
+                    if (result) {
+                        // Succeeded
+                        Log.d(TAG, "getStatsInfo succeeded");
+                        Toast.makeText(context, "Updated data from backend!", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+
+
+            // SCREEN UNLOCK
+        } else if (intent.getAction().equals(Intent.ACTION_USER_PRESENT)) {
+            // start duration and increment unlocks when screen unlock
+            long totalUnlocks = sharedPreferences.getLong(unlocksKey, 0);
+            sharedPreferences.edit().putLong(unlocksKey, ++totalUnlocks).commit();
+            Log.d(getClass().getName(), "unlocked: " + String.valueOf(totalUnlocks));
+
+            unlockDateTime = Calendar.getInstance().getTimeInMillis();
+
+            sendBroadcastToUpdateUI(context);
+
+
+            // SCREEN OFF
+        } else if (intent.getAction().equals(Intent.ACTION_SCREEN_OFF) && unlockDateTime > 0) {
+            // stop and save duration when screen lock
+            long lockDateTime = Calendar.getInstance().getTimeInMillis();
+            long currentDuration = lockDateTime - unlockDateTime;
+            long totalDuration = sharedPreferences.getLong(durationKey, 0) + currentDuration;
+
+            // save in shared preferences
+            sharedPreferences.edit().putLong(durationKey, totalDuration).apply();
+            // save in local database
+            UnlockLockEvent event = new UnlockLockEvent(-1, unlockDateTime, lockDateTime);
+            UnlockLockEventDataSource.getInstance(context).saveUnlockLockEvent(event,
+                    new BaseDataSource.CompletionHandler<UnlockLockEvent>() {
+                        @Override
+                        public void onTaskCompleted(UnlockLockEvent result) {
+                            Log.d(getClass().getName(), "saved: " + result.toString());
+                        }
+                    });
+
+            unlockDateTime = -1; // prepare for next duration
+            NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+            notificationManager.cancel(SPEECH_NOTIFICATION);
+
+            // PHONE SHUTDOWN
+        } else if (intent.getAction().equals(Intent.ACTION_SHUTDOWN) && unlockDateTime > 0) {
+            // stop and save duration when power off
+            long lockDateTime = Calendar.getInstance().getTimeInMillis();
+            long currentDuration = lockDateTime - unlockDateTime;
+            long totalDuration = sharedPreferences.getLong(durationKey, 0) + currentDuration;
+
+            // save in shared preferences
+            sharedPreferences.edit().putLong(durationKey, totalDuration).apply();
+            // save in local database
+            UnlockLockEvent event = new UnlockLockEvent(-1, unlockDateTime, lockDateTime);
+            UnlockLockEventDataSource.getInstance(context).saveUnlockLockEvent(event,
+                    new BaseDataSource.CompletionHandler<UnlockLockEvent>() {
+                        @Override
+                        public void onTaskCompleted(UnlockLockEvent result) {
+                            Log.d(getClass().getName(), "saved: " + result.toString());
+                        }
+                    });
+
+            unlockDateTime = -1; // prepare for next duration
+        }
+
+        if (mGoogleApiClient == null || !mGoogleApiClient.isConnected()) {
+            Log.d(TAG, "Setting up watch API client.");
+            setupWatchDataAPI(context.getApplicationContext());
+        } else {
+            Log.d("SVB-UsageBR", "Updating watch data");
+            sendWatchData(context);
+        }
+    }
+
+    // restores default values to shared preferences
+    private void refreshPreferences(SharedPreferences preferences, String durationKey, String unlocksKey) {
+        preferences.edit().putLong(durationKey, 0).apply();
+        preferences.edit().putLong(unlocksKey, 0).apply();
+        Log.d(TAG, "refreshPreferences");
+    }
+
+    private void setupWatchDataAPI(final Context context) {
+        mGoogleApiClient = new GoogleApiClient.Builder(context)
+                .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
+                    @Override
+                    public void onConnected(@Nullable Bundle bundle) {
+                        Log.d(TAG, "onConnected. Bundle: " + bundle);
+                        // Send data immediately after connecting.
+                        sendWatchData(context);
+                    }
+
+                    @Override
+                    public void onConnectionSuspended(int i) {
+                        Log.d(TAG, "onConnectionSuspended " + i);
+                    }
+                })
+                .addOnConnectionFailedListener(new GoogleApiClient.OnConnectionFailedListener() {
+                    @Override
+                    public void onConnectionFailed(ConnectionResult connectionResult) {
+                        Log.d(TAG, "onConnectionFailed: " + connectionResult);
+                    }
+                })
+                .addApi(Wearable.API)
+                .build();
+        mGoogleApiClient.connect();
+    }
+
+    private void sendWatchData(Context context) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        long usage = prefs.getLong(context.getString(R.string.key_for_daily_duration), 0);
+        long unlocks = prefs.getLong(context.getString(R.string.key_for_daily_unlocks), 0);
+        long limit = prefs.getLong(context.getString(R.string.key_for_daily_limitation), 0);
+        //WatchUtil.createDataMap(mGoogleApiClient, unlocks, usage, limit);
+    }
+
+    private void sendBroadcastToUpdateUI(Context context) {
+        Intent intent = new Intent();
+        intent.setAction(TodayFragment.ACTION_UPDATE_UI);
+        context.sendBroadcast(intent);
+    }
+}

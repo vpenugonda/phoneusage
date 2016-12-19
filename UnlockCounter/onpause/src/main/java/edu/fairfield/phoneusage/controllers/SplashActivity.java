@@ -1,0 +1,98 @@
+package edu.fairfield.phoneusage.controllers;
+
+import android.app.Activity;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.Bundle;
+import android.os.Handler;
+import android.preference.PreferenceManager;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+
+import edu.fairfield.phoneusage.R;
+import edu.fairfield.phoneusage.models.data_sources.BaseDataSource;
+import edu.fairfield.phoneusage.utils.ParseUtils;
+
+
+public class SplashActivity extends Activity {
+    private static final String LOADING_MESSAGE = "Loading phone usage data from other users.";
+    private static final String ERROR_MESSAGE = "Could not load phone usage information.\nConnect to the internet and try again.";
+    SharedPreferences mSharedPreferences;
+    TextView mMessageTextView;
+    ProgressBar mProgressSpinner;
+    Button mReloadButton;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        if (mSharedPreferences.getBoolean(getString(R.string.key_for_first_launch), false)) {
+            Intent intent = new Intent(this, MainActivity.class);
+            startActivity(intent);
+            finish();
+            return;
+        }
+
+        setContentView(R.layout.activity_splash);
+
+        mMessageTextView = (TextView) findViewById(R.id.splashMessage);
+        mProgressSpinner = (ProgressBar) findViewById(R.id.splashProgress);
+        mReloadButton = (Button) findViewById(R.id.splashRetryButton);
+
+        mMessageTextView.setText(LOADING_MESSAGE);
+        mProgressSpinner.getIndeterminateDrawable().setColorFilter(getResources().getColor(android.R.color.holo_green_dark),
+                android.graphics.PorterDuff.Mode.SRC_IN);
+        mReloadButton.setVisibility(View.INVISIBLE);
+
+
+        loadUsageInformation();
+    }
+
+    private void loadUsageInformation() {
+        ParseUtils.getStatsInfo(this, new BaseDataSource.CompletionHandler<Boolean>() {
+            @Override
+            public void onTaskCompleted(Boolean success) {
+
+                if (success) {
+                    Log.d(getClass().getName(), "SPLASH SUCCESS");
+                    mSharedPreferences.edit().putBoolean(getString(R.string.key_for_first_launch), true).commit();
+                    transitionToMainActivity();
+
+                } else {
+                    Log.d(getClass().getName(), "SPLASH FAILURE");
+                    mProgressSpinner.setVisibility(View.INVISIBLE);
+                    mMessageTextView.setText(ERROR_MESSAGE);
+                    mReloadButton.setVisibility(View.VISIBLE);
+                }
+
+            }
+        });
+
+    }
+
+    private void transitionToMainActivity() {
+        final Intent intent = new Intent(this, MainActivity.class);
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                startActivity(intent);
+                finish();
+            }
+        }, 3000);
+
+    }
+
+    public void onClickReload(View v) {
+        mMessageTextView.setText(LOADING_MESSAGE);
+        mProgressSpinner.setVisibility(View.VISIBLE);
+        mReloadButton.setVisibility(View.INVISIBLE);
+
+        loadUsageInformation();
+    }
+}

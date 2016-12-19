@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Unlock Tracker</string>
+    <string name="action_history">History</string>
+     <string name="action_share">Share</string>
+    <string name="action_rateus">Rate</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="title_activity_display_message">History</string>
+     <string name="Initial_Value">0</string>
+     <string name="SelectDate">Select Date</string>
+
+</resources>

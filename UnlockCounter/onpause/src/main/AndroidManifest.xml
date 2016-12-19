@@ -1,0 +1,76 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="edu.fairfield.phoneusage">
+
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO"></uses-permission>
+
+    <application
+        android:name="edu.fairfield.phoneusage.StarterApplication"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/AppTheme">
+        <meta-data
+            android:name="com.parse.APPLICATION_ID"
+            android:value="@string/parse_app_id" />
+        <meta-data
+            android:name="com.parse.CLIENT_KEY"
+            android:value="@string/parse_client_key" />
+
+        <activity
+            android:name="edu.fairfield.phoneusage.controllers.SplashActivity"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name="edu.fairfield.phoneusage.tracker.MainActivity"
+            android:label="@string/title_counter"
+            android:screenOrientation="portrait"></activity>
+
+        <activity
+            android:name="edu.fairfield.phoneusage.tracker.HistoryActivity"
+            android:label="@string/title_activity_display_message"
+            android:parentActivityName="edu.fairfield.phoneusage.tracker.MainActivity"
+            android:screenOrientation="portrait">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="edu.fairfield.phoneusage.tracker.MainActivity" />
+        </activity>
+
+        <service android:name="edu.fairfield.phoneusage.tracker.LockerService" />
+        <receiver
+            android:name="edu.fairfield.phoneusage.tracker.BroadReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+
+        <activity
+            android:name="edu.fairfield.phoneusage.controllers.MainActivity"
+            android:label="@string/app_name"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <!-- <category android:name="android.intent.category.LAUNCHER" /> -->
+            </intent-filter>
+        </activity>
+
+        <service android:name="edu.fairfield.phoneusage.utils.UsageService" />
+
+        <receiver android:name="edu.fairfield.phoneusage.utils.UsageBroadcastReceiver" />
+        <receiver android:name="edu.fairfield.phoneusage.controllers.TodayFragment$UnlockReceiver" />
+
+        <service android:name="edu.fairfield.phoneusage.utils.Context_Service" />
+    </application>
+</manifest>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <edu.fairfield.phoneusage.views.SeekBarPreference
+        android:defaultValue="50"
+        android:key="PERCENTILE"
+        android:max="99"
+        android:summary="50"
+        android:title="Target Percentile" />
+    <CheckBoxPreference
+        android:key="ANTISOCIAL_ALERTS"
+        android:summary="Reminds you to get off your phone during a conversation."
+        android:title="Antisocial Alerts" />
+</PreferenceScreen>

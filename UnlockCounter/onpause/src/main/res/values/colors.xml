@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <color name="primary">@color/md_blue_A700</color>
+    <color name="primaryDark">@color/md_blue_900</color>
+    <color name="accent">@color/md_pink_700</color>
+    <color name="history_bg">@color/md_grey_200</color>
+
+</resources>

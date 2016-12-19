@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rel"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/history_bg"
+    android:gravity="fill_vertical"
+    android:orientation="vertical"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin">
+
+    <TextView
+        android:id="@+id/text_id2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:fontFamily="serif"
+        android:paddingTop="50sp"
+        android:text="@string/hello_world"
+        android:textColor="#000000"
+        android:textSize="20sp" />
+
+    <TextView
+        android:id="@+id/text_id"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+
+        android:layout_gravity="center"
+        android:paddingTop="30sp"
+
+        android:text="@string/Initial_Value"
+        android:textColor="@color/accent"
+        android:textSize="160sp" />
+
+    <TextView
+        android:id="@+id/text_id3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:fontFamily="serif"
+        android:paddingTop="30sp"
+        android:text="@string/hello_world"
+
+        android:textColor="#000000"
+
+        android:textSize="20sp" />
+
+
+    <TextView
+        android:id="@+id/text_id4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:fontFamily="serif"
+        android:paddingTop="10sp"
+        android:text="@string/hello_world"
+
+        android:textColor="#000000"
+
+        android:textSize="12sp" />
+    <!--   <TextView -->
+    <!--         android:id="@+id/text_id5" -->
+    <!--         android:layout_width="wrap_content" -->
+    <!--         android:layout_height="wrap_content" -->
+    <!--         android:layout_gravity="center_horizontal" -->
+    <!--         android:fontFamily="serif" -->
+    <!--        android:paddingTop="10sp" -->
+    <!--         android:textSize="12sp" -->
+
+    <!--         android:text="@string/hello_world" -->
+
+    <!--         android:textColor="#000000" />     -->
+</LinearLayout>
